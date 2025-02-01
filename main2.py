@@ -22,6 +22,7 @@ edges = [
     ("R2", "R7"), ("R7", "R0"), ("R8", "R1"),
     ("R4", "R9"), ("R9", "R2")
 ]
+
 for edge in edges:
     G.add_edge(edge[0], edge[1], weight=1)  # Fixed weight for consistency
 

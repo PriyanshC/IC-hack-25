@@ -129,5 +129,5 @@ def update(frame):
     ax.set_zlabel("Floor")
     ax.set_title(f"Time Step: {frame+1}")
 
-ani = FuncAnimation(fig, update, frames=1, interval=3000)
+ani = FuncAnimation(fig, update, interval=3000)
 plt.show()

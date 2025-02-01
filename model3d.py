@@ -24,7 +24,7 @@ stairwell_nodes = {f"R{floor}_{stairwell_row}_{stairwell_col}" for floor in rang
 
 # Randomly choose exits and fire locations
 exit_nodes = {f"R0_{random.randint(0, ROWS-1)}_{random.randint(0, COLS-1)}"}  # Exit on ground floor
-fire_nodes = set(random.sample(nodes, 4))  # Random fire locations
+fire_nodes = set(random.sample(nodes, 8))  # Random fire locations
 
 # Add nodes to graph
 for node in nodes:
@@ -64,24 +64,32 @@ def find_safest_paths(G, exit_nodes):
         if node in exit_nodes:
             safe_paths[node] = None  # No path needed for exit nodes
             continue
-        shortest_path = None
+        
+        valid_paths = []
         shortest_length = float("inf")
+
         for exit_node in exit_nodes:
             try:
-                path = nx.shortest_path(G, source=node, target=exit_node, weight="weight")
-                if all(n not in fire_nodes for n in path):  # Ensure path is fully safe
-                    length = nx.shortest_path_length(G, source=node, target=exit_node, weight="weight")
-                    if length < shortest_length:
-                        shortest_path = path
-                        shortest_length = length
+                paths = list(nx.all_simple_paths(G, source=node, target=exit_node))
+                
+                # Filter out paths that contain a fire node
+                for path in paths:
+                    if all(n not in fire_nodes for n in path):
+                        valid_paths.append(path)
+                        shortest_length = min(shortest_length, len(path))
             except nx.NetworkXNoPath:
+                print("no path")
                 continue
 
-        if shortest_path is None:
-            blocked_nodes.add(node)  # Mark as isolated only if no valid path exists
-        safe_paths[node] = shortest_path
+        # Select the shortest valid path
+        if valid_paths:
+            safe_paths[node] = min(valid_paths, key=len)  # Get the shortest valid path
+        else:
+            blocked_nodes.add(node)  # Mark as isolated if no safe path exists
+            safe_paths[node] = None
 
     return safe_paths, blocked_nodes
+
 
 # Compute safest paths
 safe_paths, blocked_nodes = find_safest_paths(G, exit_nodes)

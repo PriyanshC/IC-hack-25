@@ -92,6 +92,19 @@ def spread_fire():
         G.nodes[node]["fire"] = True
 
 
+# Person class
+class Person:
+    def __init__(self, start_node):
+        self.current_node = start_node
+
+    def move(self, safe_paths):
+        path = safe_paths[self.current_node]
+        if path is not None and len(path) > 1:
+            self.current_node = path[1]
+
+# Initialize person
+person = Person("R2_0_0")
+
 # 3D Visualization
 fig = plt.figure(figsize=(10, 7))
 ax = fig.add_subplot(111, projection="3d")
@@ -103,7 +116,8 @@ def update(frame):
     ax.clear()
     spread_fire()
     safe_paths, blocked_nodes = find_safest_paths(G, exit_nodes)
-    
+    person.move(safe_paths)
+
     node_colors = [
         "red" if G.nodes[n]["fire"] else
         "blue" if G.nodes[n]["exit"] else
@@ -112,8 +126,9 @@ def update(frame):
     ]
     
     for node, (x, y, z) in pos.items():
-        ax.scatter(x, y, z, color=node_colors[list(G.nodes).index(node)], s=200)
-    
+        color = "black" if node == person.current_node else node_colors[list(G.nodes).index(node)]
+        ax.scatter(x, y, z, color=color, s=200)
+
     for edge in G.edges:
         x_vals, y_vals, z_vals = zip(*[pos[edge[0]], pos[edge[1]]])
         ax.plot(x_vals, y_vals, z_vals, "gray")

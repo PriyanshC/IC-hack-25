@@ -1,33 +1,35 @@
 import networkx as nx
 import matplotlib.pyplot as plt
-import random
 
 # Define the building as a graph
 G = nx.DiGraph()
 
-# Nodes (Rooms & Corridors)
-nodes = [f"R{i}" for i in range(12)]
-exit_nodes = random.sample(nodes, 2)  # Randomly select 2 exit nodes
-fire_nodes = random.sample([n for n in nodes if n not in exit_nodes], 3)  # 3 random fire nodes
+# Hardcoded nodes
+nodes = ["R0", "R1", "R2", "R3", "R4", "R5", "R6", "R7", "R8", "R9", "R10", "R11"]
+exit_nodes = {"R2", "R9"}  # Fixed exit nodes
+fire_nodes = {"R4", "R5", "R6", "R7"}  # Fire surrounding R3
 
 # Add nodes to graph
 for node in nodes:
-    G.add_node(node, exit=(node in exit_nodes), fire=(node in fire_nodes))
+    G.add_node(node, exit=node in exit_nodes, fire=node in fire_nodes)
 
-# Define edges (Doors) with weights (distance/time to travel)
+# Hardcoded edges (doors) with weights
 edges = [
-    ("R0", "R1"), ("R1", "R2"), ("R2", "R3"), ("R3", "R4"), ("R4", "R5"),
-    ("R5", "R6"), ("R6", "R7"), ("R7", "R8"), ("R8", "R9"), ("R9", "R10"),
-    ("R10", "R11"), ("R11", "R0"), ("R0", "R5"), ("R5", "R10"),
-    ("R1", "R6"), ("R6", "R11"), ("R2", "R7"), ("R7", "R0"), ("R3", "R8"),
-    ("R8", "R1"), ("R4", "R9"), ("R9", "R2")
+    ("R0", "R1"), ("R1", "R2"), ("R3", "R4"), ("R4", "R5"),
+    ("R5", "R6"), ("R6", "R7"), ("R7", "R3"),  # Circular trap around R3
+    ("R7", "R8"), ("R8", "R9"), ("R9", "R10"), ("R10", "R11"), ("R11", "R0"),
+    ("R0", "R5"), ("R5", "R10"), ("R1", "R6"), ("R6", "R11"),
+    ("R2", "R7"), ("R7", "R0"), ("R8", "R1"),
+    ("R4", "R9"), ("R9", "R2")
 ]
 for edge in edges:
-    G.add_edge(edge[0], edge[1], weight=random.randint(1, 5))
+    G.add_edge(edge[0], edge[1], weight=1)  # Fixed weight for consistency
 
 # Function to find the safest and shortest path avoiding fire
 def find_safest_paths(G, exit_nodes):
     safe_paths = {}
+    blocked_nodes = set()  # Nodes with no escape route
+
     for node in G.nodes:
         if node in exit_nodes:
             safe_paths[node] = None  # No path needed for exit nodes
@@ -45,20 +47,30 @@ def find_safest_paths(G, exit_nodes):
                     shortest_length = length
             except nx.NetworkXNoPath:
                 continue
-        safe_paths[node] = shortest_path
-    return safe_paths
 
-# Get the safest paths
-safe_paths = find_safest_paths(G, exit_nodes)
+        if shortest_path is None:
+            blocked_nodes.add(node)  # Mark as isolated
+        safe_paths[node] = shortest_path
+
+    return safe_paths, blocked_nodes
+
+# Get the safest paths & identify blocked nodes
+safe_paths, blocked_nodes = find_safest_paths(G, exit_nodes)
 
 # Draw the graph
 plt.figure(figsize=(10, 7))
 pos = nx.spring_layout(G)  # Positioning nodes
 
-# Color nodes based on fire/safety/exit
+# Assign colors based on node type
 node_colors = [
-    "red" if G.nodes[n]["fire"] else "blue" if G.nodes[n]["exit"] else "green" for n in G.nodes
+    "red" if G.nodes[n]["fire"] else 
+    "blue" if G.nodes[n]["exit"] else 
+    "orange" if n in blocked_nodes else 
+    "green"
+    for n in G.nodes
 ]
+
+# Draw nodes and edges
 nx.draw(G, pos, with_labels=True, node_color=node_colors, node_size=1000, edge_color="gray")
 
 # Draw safest paths with arrows
@@ -67,5 +79,5 @@ for node, path in safe_paths.items():
         for i in range(len(path) - 1):
             nx.draw_networkx_edges(G, pos, edgelist=[(path[i], path[i+1])], edge_color="blue", width=2, arrowstyle="->")
 
-plt.title("Building Escape Route")
+plt.title("Building Escape Route with Blocked Nodes")
 plt.show()

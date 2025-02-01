@@ -3,6 +3,13 @@ import matplotlib.pyplot as plt
 import random
 from mpl_toolkits.mplot3d import Axes3D
 
+COLOURS = {
+    "fire": "indianred",
+    "exit": "lightgreen",
+    "room": "lightblue",
+    "arrow": "palegreen",
+}
+
 # Define the 3D building structure
 FLOORS = 3  # Number of floors
 ROOMS_PER_FLOOR = 4  # Rooms per floor

@@ -18,7 +18,7 @@ nodes = [f"R{floor}_{row}_{col}" for floor in range(FLOORS) for row in range(ROW
 stairwell_row, stairwell_col = ROWS // 2, COLS // 2
 stairwell_nodes = {f"R{floor}_{stairwell_row}_{stairwell_col}" for floor in range(FLOORS)}
 exit_nodes = {f"R0_{random.randint(0, ROWS-1)}_{random.randint(0, COLS-1)}"}  # Random exit
-initial_fire_nodes = set(random.sample(nodes, 3))  # Start with 3 fire nodes
+initial_fire_nodes = set(random.sample(nodes, 1))  # Start with 1 fire nodes
 fire_nodes = set(initial_fire_nodes)
 
 # Add nodes to graph
@@ -83,7 +83,8 @@ def spread_fire():
         # If there are any uninfected neighbors, randomly pick one to infect
         if uninfected_neighbors:
             new_fire_node = random.choice(uninfected_neighbors)
-            new_fire_nodes.add(new_fire_node)
+            if new_fire_node not in exit_nodes:
+                new_fire_nodes.add(new_fire_node)
     
     # Update fire nodes
     fire_nodes.update(new_fire_nodes)
@@ -128,5 +129,5 @@ def update(frame):
     ax.set_zlabel("Floor")
     ax.set_title(f"Time Step: {frame+1}")
 
-ani = FuncAnimation(fig, update, frames=2, interval=1000)
+ani = FuncAnimation(fig, update, frames=1, interval=3000)
 plt.show()

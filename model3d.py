@@ -7,7 +7,6 @@ from mpl_toolkits.mplot3d import Axes3D
 FLOORS = 3
 ROWS = 3  # Rows of rooms per floor
 COLS = 4  # Columns of rooms per floor
-STAIRWELLS = 2  # Number of stairwells
 
 # Create graph
 G = nx.DiGraph()
@@ -19,14 +18,17 @@ for floor in range(FLOORS):
         for col in range(COLS):
             nodes.append(f"R{floor}_{row}_{col}")
 
-# Randomly choose exits, fire, and stairwells
+# Choose a fixed central stairwell position
+stairwell_row, stairwell_col = ROWS // 2, COLS // 2
+stairwell_nodes = {f"R{floor}_{stairwell_row}_{stairwell_col}" for floor in range(FLOORS)}
+
+# Randomly choose exits and fire locations
 exit_nodes = {f"R0_{random.randint(0, ROWS-1)}_{random.randint(0, COLS-1)}"}  # Exit on ground floor
 fire_nodes = set(random.sample(nodes, 4))  # Random fire locations
-stairwells = set(random.sample(nodes, STAIRWELLS))  # Stairwell positions
 
 # Add nodes to graph
 for node in nodes:
-    G.add_node(node, exit=node in exit_nodes, fire=node in fire_nodes, stairwell=node in stairwells)
+    G.add_node(node, exit=node in exit_nodes, fire=node in fire_nodes, stairwell=node in stairwell_nodes)
 
 # Connect rooms within the same floor
 for floor in range(FLOORS):
@@ -46,15 +48,12 @@ for floor in range(FLOORS):
             if row > 0:
                 G.add_edge(current, f"R{floor}_{row - 1}_{col}", weight=1)
 
-# Connect stairwells between floors
-for stairwell in stairwells:
-    floor, row, col = map(int, stairwell[1:].split("_"))
-    if floor < FLOORS - 1:  # Connect upwards
-        G.add_edge(stairwell, f"R{floor + 1}_{row}_{col}", weight=1)
-        G.add_edge(f"R{floor + 1}_{row}_{col}", stairwell, weight=1)
-    if floor > 0:  # Connect downwards
-        G.add_edge(stairwell, f"R{floor - 1}_{row}_{col}", weight=1)
-        G.add_edge(f"R{floor - 1}_{row}_{col}", stairwell, weight=1)
+# Connect floors using only the single stairwell
+for floor in range(FLOORS - 1):  # Connect floor i to i+1
+    lower = f"R{floor}_{stairwell_row}_{stairwell_col}"
+    upper = f"R{floor + 1}_{stairwell_row}_{stairwell_col}"
+    G.add_edge(lower, upper, weight=1)
+    G.add_edge(upper, lower, weight=1)
 
 # Function to find safest paths
 def find_safest_paths(G, exit_nodes):

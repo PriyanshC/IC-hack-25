@@ -3,44 +3,63 @@ import matplotlib.pyplot as plt
 import random
 from mpl_toolkits.mplot3d import Axes3D
 
-# Define the 3D building structure
-FLOORS = 3  # Number of floors
-ROOMS_PER_FLOOR = 4  # Rooms per floor
-TOTAL_NODES = FLOORS * ROOMS_PER_FLOOR  # Total rooms
+# Building configuration
+FLOORS = 3
+ROWS = 3  # Rows of rooms per floor
+COLS = 4  # Columns of rooms per floor
 STAIRWELLS = 2  # Number of stairwells
 
-# Create a graph
+# Create graph
 G = nx.DiGraph()
 
-# Generate nodes for rooms
-nodes = [f"R{floor}_{room}" for floor in range(FLOORS) for room in range(ROOMS_PER_FLOOR)]
-exit_nodes = {f"R0_{random.randint(0, ROOMS_PER_FLOOR - 1)}"}  # Exit on ground floor
-fire_nodes = set(random.sample(nodes, 3))  # Random fire locations
-stairwells = set(random.sample(nodes, STAIRWELLS))  # Random stairwells
+# Generate nodes for a structured layout
+nodes = []
+for floor in range(FLOORS):
+    for row in range(ROWS):
+        for col in range(COLS):
+            nodes.append(f"R{floor}_{row}_{col}")
 
-# Add nodes to the graph
+# Randomly choose exits, fire, and stairwells
+exit_nodes = {f"R0_{random.randint(0, ROWS-1)}_{random.randint(0, COLS-1)}"}  # Exit on ground floor
+fire_nodes = set(random.sample(nodes, 4))  # Random fire locations
+stairwells = set(random.sample(nodes, STAIRWELLS))  # Stairwell positions
+
+# Add nodes to graph
 for node in nodes:
     G.add_node(node, exit=node in exit_nodes, fire=node in fire_nodes, stairwell=node in stairwells)
 
-# Generate edges for rooms on the same floor
+# Connect rooms within the same floor
 for floor in range(FLOORS):
-    for i in range(ROOMS_PER_FLOOR):
-        current = f"R{floor}_{i}"
-        next_room = f"R{floor}_{(i + 1) % ROOMS_PER_FLOOR}"
-        G.add_edge(current, next_room, weight=1)
+    for row in range(ROWS):
+        for col in range(COLS):
+            current = f"R{floor}_{row}_{col}"
+            # Right neighbor
+            if col < COLS - 1:
+                G.add_edge(current, f"R{floor}_{row}_{col + 1}", weight=1)
+            # Left neighbor
+            if col > 0:
+                G.add_edge(current, f"R{floor}_{row}_{col - 1}", weight=1)
+            # Down neighbor
+            if row < ROWS - 1:
+                G.add_edge(current, f"R{floor}_{row + 1}_{col}", weight=1)
+            # Up neighbor
+            if row > 0:
+                G.add_edge(current, f"R{floor}_{row - 1}_{col}", weight=1)
 
 # Connect stairwells between floors
 for stairwell in stairwells:
-    floor, room = map(int, stairwell[1:].split("_"))
+    floor, row, col = map(int, stairwell[1:].split("_"))
     if floor < FLOORS - 1:  # Connect upwards
-        G.add_edge(stairwell, f"R{floor + 1}_{room}", weight=1)
+        G.add_edge(stairwell, f"R{floor + 1}_{row}_{col}", weight=1)
+        G.add_edge(f"R{floor + 1}_{row}_{col}", stairwell, weight=1)
     if floor > 0:  # Connect downwards
-        G.add_edge(stairwell, f"R{floor - 1}_{room}", weight=1)
+        G.add_edge(stairwell, f"R{floor - 1}_{row}_{col}", weight=1)
+        G.add_edge(f"R{floor - 1}_{row}_{col}", stairwell, weight=1)
 
 # Function to find safest paths
 def find_safest_paths(G, exit_nodes):
     safe_paths = {}
-    blocked_nodes = set()  # Nodes with no escape route
+    blocked_nodes = set()  # Nodes with no escape
 
     for node in G.nodes:
         if node in exit_nodes:
@@ -51,17 +70,16 @@ def find_safest_paths(G, exit_nodes):
         for exit_node in exit_nodes:
             try:
                 path = nx.shortest_path(G, source=node, target=exit_node, weight="weight")
-                if any(n in fire_nodes for n in path):  # Avoid paths through fire
-                    continue
-                length = nx.shortest_path_length(G, source=node, target=exit_node, weight="weight")
-                if length < shortest_length:
-                    shortest_path = path
-                    shortest_length = length
+                if all(n not in fire_nodes for n in path):  # Ensure path is fully safe
+                    length = nx.shortest_path_length(G, source=node, target=exit_node, weight="weight")
+                    if length < shortest_length:
+                        shortest_path = path
+                        shortest_length = length
             except nx.NetworkXNoPath:
                 continue
 
         if shortest_path is None:
-            blocked_nodes.add(node)  # Mark as isolated
+            blocked_nodes.add(node)  # Mark as isolated only if no valid path exists
         safe_paths[node] = shortest_path
 
     return safe_paths, blocked_nodes
@@ -76,15 +94,14 @@ ax = fig.add_subplot(111, projection="3d")
 # Assign 3D positions
 pos = {}
 for node in G.nodes:
-    floor, room = map(int, node[1:].split("_"))
-    pos[node] = (room, floor, 0)  # (X, Y, Z)
+    floor, row, col = map(int, node[1:].split("_"))
+    pos[node] = (col, row, floor)  # (X, Y, Z)
 
 # Node colors
 node_colors = [
     "red" if G.nodes[n]["fire"] else 
     "blue" if G.nodes[n]["exit"] else 
     "orange" if n in blocked_nodes else 
-    "yellow" if G.nodes[n]["stairwell"] else 
     "green"
     for n in G.nodes
 ]
@@ -105,8 +122,8 @@ for node, path in safe_paths.items():
             x_vals, y_vals, z_vals = zip(*[pos[path[i]], pos[path[i+1]]])
             ax.plot(x_vals, y_vals, z_vals, "blue", linewidth=2)
 
-ax.set_xlabel("Room")
-ax.set_ylabel("Floor")
-ax.set_zlabel("Height")
-ax.set_title("3D Building Escape Route")
+ax.set_xlabel("Column")
+ax.set_ylabel("Row")
+ax.set_zlabel("Floor")
+ax.set_title("3D Structured Building Escape Route")
 plt.show()

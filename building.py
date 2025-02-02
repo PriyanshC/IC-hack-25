@@ -7,19 +7,19 @@ class RoomState(Enum):
     Safe = 3
     Exit = 4
 
-    def color(self) -> str:
-        match self:
-            case RoomState.Fire: 
-                return "indianred"
+    # def color(self) -> str:
+    #     match self:
+    #         case RoomState.Fire: 
+    #             return "indianred"
             
-            case RoomState.Trap: 
-                return "orange"
+    #         case RoomState.Trap: 
+    #             return "orange"
             
-            case RoomState.Safe: 
-                return "lightblue"
+    #         case RoomState.Safe: 
+    #             return "lightblue"
 
-            case RoomState.Exit: 
-                return "lightgreen"
+    #         case RoomState.Exit: 
+    #             return "lightgreen"
 
 
 class Room:
@@ -27,16 +27,23 @@ class Room:
         self.floor = floor
         self.row = row
         self.col = col
+        self.name = f"R{floor}_{row}_{col}"
         self.state = RoomState.Safe
 
     def __eq__(self, other):
-        return self.row == other.row and self.col == other.col and self.state == other.state and self.floor == other.floor
+        return self.row == other.row and self.col == other.col and self.floor == other.floor
 
     def __hash__(self):
         return hash((self.row, self.col, self.state, self.floor))
+    
+    def __repr__(self):
+        return f"Room({self.floor}, {self.row}, {self.col})"
+
+    def __str__(self):
+        return f"Room({self.floor}, {self.row}, {self.col})"
 
     def name(self) -> str:
-        return f"{self.floor}-{self.row}-{self.col}"
+        return self.name
 
     def color(self) -> str:
         return self.state.color()

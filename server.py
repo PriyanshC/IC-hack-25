@@ -19,15 +19,21 @@ class Server:
         
         self.constructGraph()
 
+    def getNodes(self):
+        return self.nodes
+
     def findIndex(self, floor, row, col):
-        return self.nodes[floor * (self.COLS * self.ROWS) + row * self.COLS + col]
+        return self.nodes[floor * (self.ROWS * self.COLS) + row * self.COLS + col]
 
     # Set up graph connections
     def constructGraph(self):
         # Add nodes to graph
+        # print(len(self.nodes))
         for node in self.nodes:
-            self.state.add_node(node, exit=node in self.exit_nodes, fire=node in self.fire_nodes, stairwell=node in self.stairwell_nodes)
+            self.state.add_node(node.name, exit=node in self.exit_nodes, fire=False, stairwell=node in self.stairwell_nodes)
         
+        # print("State", self.state)
+
         # Connect rooms within the same floor
         for floor in range(self.FLOORS):
             for row in range(self.ROWS):
@@ -54,6 +60,8 @@ class Server:
         node = self.findIndex(floor, row, col)
 
         self.fire_nodes.add(node)
+        print(self.state.nodes)
+        self.state.nodes[node.name]["fire"] = True
         node.setState(RoomState.Fire)
 
         self.calculateExitRoutes()
@@ -62,14 +70,14 @@ class Server:
     def calculateExitRoutes(self):
         safe_paths = {}
         blocked_paths = set()
-        for node in self.state.nodes:
+        for node in self.nodes:
             if node in self.exit_nodes:
                 safe_paths[node] = None
                 continue
             valid_paths = []
             for exit_node in self.exit_nodes:
                 try:
-                    paths = list(nx.all_simple_paths(self.state, source=node, target=exit_node))
+                    paths = list(nx.all_simple_paths(self.state, source=node.name, target=exit_node.name))
                     for path in paths:
                         if all(n not in self.fire_nodes for n in path):
                             valid_paths.append(path)

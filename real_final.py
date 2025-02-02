@@ -6,14 +6,12 @@ from matplotlib.animation import FuncAnimation
 import matplotlib.patches as patches
 from matplotlib.offsetbox import OffsetImage, AnnotationBbox
 import numpy as np
+import threading
+import requests
 
-# Load images for visual indicators (replace with your own images if needed)
-fire_exit_sign = plt.imread("fire_exit.png")  # Replace with path to fire exit sign image
-red_cross = plt.imread("red_cross.png")      # Replace with path to red cross image
-triangle = plt.imread("trapped.png")        # Replace with path to triangle image
-running_man = plt.imread("rush.png")  # Replace with path to running man image
-not_fastest_route = plt.imread("faster_route.png")  # Replace with path to the image
+url = "http://172.30.175.227/data"
 
+FIRE_THRESHOLD = 27.5
 
 # Building configuration
 FLOORS = 3
@@ -71,6 +69,25 @@ def find_safest_paths(G, exit_nodes):
         if not safe_paths[node]:
             blocked_nodes.add(node)
     return safe_paths, blocked_nodes
+
+def get_temperature():
+    """Fetch sensor data from ESP32 and return temperature as float."""
+    while True:
+        try:
+            response = requests.get(url)
+            if response.status_code == 200:
+                temperature = response.text.split(" ")[1].split("\n")[0]
+                temperature = float(temperature[:-3])  # Remove unwanted characters
+                print(temperature)
+                if temperature > FIRE_THRESHOLD:
+                    print("FIRE!!!!!")
+                    fire_nodes.add("R2_2_0")
+            else:
+                print(f"Error: Unable to fetch data (Status code: {response.status_code})")
+                return None
+        except Exception as e:
+            print(f"Error: {e}")
+            return None
 
 # Fire spread function
 def spread_fire():
@@ -373,6 +390,8 @@ def on_key_press(event):
     global paused
     if event.key == " ":
         paused = not paused  # Toggle pause/play
+
+threading.Thread(target=get_temperature, daemon=True).start()
 
 ani = FuncAnimation(fig, update, interval=tick_speed)
 fig.canvas.mpl_connect("key_press_event", on_key_press)

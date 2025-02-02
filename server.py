@@ -1,14 +1,3 @@
-'''
-class Room:
-
-    def reportFire():
-        send to server i am on fire
-        Server.updateRoom()
-
-    def setBlocked
-
-    def 
-'''
 import random
 from networkx import DiGraph
 import networkx as nx

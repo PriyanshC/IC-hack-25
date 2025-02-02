@@ -13,10 +13,16 @@ def spread_fire(server):
     new_fire_nodes = set()
     for node in server.fire_nodes:
         floor, row, col = node.floor, node.row, node.col
-        neighbors = [
-            server.findIndex(floor, row+1, col), server.findIndex(floor, row-1, col),
-            server.findIndex(floor, row, col+1), server.findIndex(floor, row, col-1)
-        ]
+        neighbors = []
+        if row != 0:
+            neighbors.append(server.findIndex(floor, row-1, col))
+        elif row != server.ROWS - 1:
+            neighbors.append(server.findIndex(floor, row+1, col))
+        elif col != 0:
+            neighbors.append(server.findIndex(floor, row, col-1))
+        elif col != server.COL - 1:
+            neighbors.append(server.findIndex(floor, row, col+1))
+        
         if node in server.stairwell_nodes and floor < server.FLOORS - 1:
             neighbors.append(server.findIndex(floor+1, row, col))
         if node in server.stairwell_nodes and floor > 0:

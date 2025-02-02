@@ -12,7 +12,6 @@ from building import *
 def spread_fire(server):
     new_fire_nodes = set()
     for node in server.fire_nodes:
-        print("In server.fire_nodes", node)
         floor, row, col = node.floor, node.row, node.col
         neighbors = [
             server.findIndex(floor, row+1, col), server.findIndex(floor, row-1, col),
@@ -34,9 +33,9 @@ def spread_fire(server):
     
     # Update fire nodes
     server.fire_nodes.update(new_fire_nodes)
-    print(server.state.nodes)
     for node in new_fire_nodes:
         server.updateRoom(node.floor, node.row, node.col)
+
 
 # 3D Visualization
 fig = plt.figure(figsize=(10, 7))
@@ -45,29 +44,25 @@ ax = fig.add_subplot(111, projection="3d")
 def updateGraph(frame, server, pos):
     ax.clear()
     G = server.pollState()
-    print(G)
-    print("G nodes", G.nodes)
-    nodes = server.getNodes()
+    nodes = server.getNodes()   
     spread_fire(server)  # Fix: Pass server argument
     safe_paths, blocked_nodes = server.calculateExitRoutes()
     
-
     node_colors = [
-        "red" if G.nodes[n]["fire"] else
-        "blue" if G.nodes[n]["exit"] else
-        "orange" if n in blocked_nodes else
-        "green" for n in G.nodes
+        "red" if G.nodes[node.name]["fire"] else
+        "blue" if G.nodes[node.name]["exit"] else
+        "orange" if node in blocked_nodes else
+        "green" for node in nodes
     ]
-    
-    for node, (x, y, z) in pos.items():
-        ax.scatter(x, y, z, color=node_colors[list(G.nodes).index(node)], s=200)
+
+    for i, (node, (x, y, z)) in enumerate(pos.items()):
+        ax.scatter(x, y, z, color=node_colors[i], s=200)
     
     for edge in G.edges:
         x_vals, y_vals, z_vals = zip(*[pos[edge[0]], pos[edge[1]]])
         ax.plot(x_vals, y_vals, z_vals, "gray")
     
     for node, path in safe_paths.items():
-        print("In safe_paths.items()", node)
         if path and len(path) > 1:
             for i in range(len(path) - 1):
                 x_vals, y_vals, z_vals = zip(*[pos[path[i]], pos[path[i+1]]])
@@ -90,7 +85,6 @@ def inputThread(server):
         elif user_input.startswith("fire "):
             _, floor, row, col = user_input.split()
             floor, row, col = int(floor), int(row), int(col)
-            print(server.findIndex(floor, row, col))
             if Room(floor, row, col) in server.getNodes():
                 server.updateRoom(floor, row, col)
                 print(f"🔥 Fire added to R{floor}_{row}_{col}")
@@ -109,7 +103,7 @@ if __name__ == '__main__':
 
     # Assign 3D positions
     nodes = server.getNodes()
-    pos = {node: (node.col, node.row, node.floor) for node in nodes}
+    pos = {node.name: (node.col, node.row, node.floor) for node in nodes}
 
     # Start input thread (this can run in a separate thread)
     t1 = threading.Thread(target=inputThread, args=(server,))

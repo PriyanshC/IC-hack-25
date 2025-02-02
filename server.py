@@ -39,14 +39,14 @@ class Server:
             for row in range(self.ROWS):
                 for col in range(self.COLS):
                     current = self.findIndex(floor, row, col)
-                    if col < self.COLS - 1: self.state.add_edge(current, self.findIndex(floor, row, col + 1), weight=1)
-                    if col > 0: self.state.add_edge(current, self.findIndex(floor, row, col - 1), weight=1)
-                    if row < self.ROWS - 1: self.state.add_edge(current, self.findIndex(floor, row + 1, col), weight=1)
-                    if row > 0: self.state.add_edge(current, self.findIndex(floor, row - 1, col), weight=1)
+                    if col < self.COLS - 1: self.state.add_edge(current.name, self.findIndex(floor, row, col + 1).name, weight=1)
+                    if col > 0: self.state.add_edge(current.name, self.findIndex(floor, row, col - 1).name, weight=1)
+                    if row < self.ROWS - 1: self.state.add_edge(current.name, self.findIndex(floor, row + 1, col).name, weight=1)
+                    if row > 0: self.state.add_edge(current.name, self.findIndex(floor, row - 1, col).name, weight=1)
 
         # Connect floors via stairwell
         for floor in range(self.FLOORS - 1):
-            lower, upper = self.findIndex(floor, self.stairwell_row, self.stairwell_col), self.findIndex(floor + 1, self.stairwell_row, self.stairwell_col)
+            lower, upper = self.findIndex(floor, self.stairwell_row, self.stairwell_col).name, self.findIndex(floor + 1, self.stairwell_row, self.stairwell_col).name
             self.state.add_edge(lower, upper, weight=1)
             self.state.add_edge(upper, lower, weight=1)
 
@@ -60,7 +60,6 @@ class Server:
         node = self.findIndex(floor, row, col)
 
         self.fire_nodes.add(node)
-        print(self.state.nodes)
         self.state.nodes[node.name]["fire"] = True
         node.setState(RoomState.Fire)
 

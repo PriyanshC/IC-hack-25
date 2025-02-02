@@ -46,7 +46,7 @@ def updateGraph(frame, server, pos):
     safe_paths, blocked_nodes = server.calculateExitRoutes()
     
     node_colors = [
-        "red" if G.nodes[n]["fire"] else
+        # "red" if G.nodes[n]["fire"] else
         "blue" if G.nodes[n]["exit"] else
         "orange" if n in blocked_nodes else
         "green" for n in G.nodes
@@ -82,8 +82,7 @@ def inputThread(server):
         elif user_input.startswith("fire "):
             room = user_input.split()[1]
             if room in server.pollState().nodes:
-                server.fire_nodes.add(room)
-                server.pollState().nodes[room]["fire"] = True
+                server.updateRoom(room)
                 print(f"🔥 Fire added to {room}")
             else:
                 print("Invalid room.")

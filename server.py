@@ -57,6 +57,7 @@ class Server:
     # Function to find safest paths
     def calculateExitRoutes(self):
         safe_paths = {}
+        blocked_paths = {}
         for node in self.state.nodes:
             if node in self.exit_nodes:
                 safe_paths[node] = None
@@ -72,8 +73,11 @@ class Server:
                     continue
             safe_paths[node] = min(valid_paths, key=len) if valid_paths else None
             if not safe_paths[node]:
+                blocked_paths.add(node)
                 # node.setBlocked()
                 pass
             else:
                 # node.safePath(safe_paths[node])
                 pass
+
+        return safe_paths, blocked_paths

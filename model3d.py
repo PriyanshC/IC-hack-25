@@ -4,21 +4,48 @@ import random
 import time
 from mpl_toolkits.mplot3d import Axes3D
 from matplotlib.animation import FuncAnimation
+import requests
+import threading
+
+# IP of ESP32-S2 Mini
+url = "http://172.30.175.227/data"
 
 # Building configuration
 FLOORS = 3
 ROWS = 3
 COLS = 4
+FIRE_THRESHOLD = 28.5
 
 # Create graph
 G = nx.DiGraph()
+
+def get_temperature():
+    """Fetch sensor data from ESP32 and return temperature as float."""
+    while True:
+        try:
+            response = requests.get(url)
+            if response.status_code == 200:
+                temperature = response.text.split(" ")[1].split("\n")[0]
+                temperature = float(temperature[:-3])  # Remove unwanted characters
+                print(temperature)
+                if temperature > FIRE_THRESHOLD:
+                    print("FIRE!!!!!")
+                    fire_nodes.add(nodes[30])
+            else:
+                print(f"Error: Unable to fetch data (Status code: {response.status_code})")
+                return None
+        except Exception as e:
+            print(f"Error: {e}")
+            return None
+    
+
 
 # Generate nodes
 nodes = [f"R{floor}_{row}_{col}" for floor in range(FLOORS) for row in range(ROWS) for col in range(COLS)]
 stairwell_row, stairwell_col = ROWS // 2, COLS // 2
 stairwell_nodes = {f"R{floor}_{stairwell_row}_{stairwell_col}" for floor in range(FLOORS)}
 exit_nodes = {f"R0_{random.randint(0, ROWS-1)}_{random.randint(0, COLS-1)}"}  # Random exit
-initial_fire_nodes = set(random.sample(nodes, 1))  # Start with 1 fire nodes
+initial_fire_nodes = set()  # Start with 1 fire nodes
 fire_nodes = set(initial_fire_nodes)
 
 # Add nodes to graph
@@ -176,7 +203,7 @@ def update(frame):
     ]
 
     for node, (x, y, z) in pos.items():
-        color = "black" if node == person.current_node else node_colors[list(G.nodes).index(node)]
+        color = node_colors[list(G.nodes).index(node)]
         ax.scatter(x, y, z, color=color, s=200)
 
     for edge in G.edges:
@@ -196,6 +223,8 @@ def update(frame):
     ax.set_ylabel("Row")
     ax.set_zlabel("Floor")
     ax.set_title(f"Time Step: {frame+1}")
+
+threading.Thread(target=get_temperature, daemon=True).start()
 
 ani = FuncAnimation(fig, update, interval=500)
 plt.show()

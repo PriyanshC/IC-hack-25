@@ -87,7 +87,8 @@ def inputThread(server):
             else:
                 print("Invalid room.")
 
-def main():
+if __name__ == '__main__':
+    
     # Building configuration
     FLOORS = 3
     ROWS = 3
@@ -108,6 +109,3 @@ def main():
 
     t1.join()  # Wait for input thread to finish
     print("Exiting program...")
-
-if __name__ == '__main__':
-    main()

@@ -6,6 +6,7 @@ import time
 from mpl_toolkits.mplot3d import Axes3D
 from matplotlib.animation import FuncAnimation
 from server import Server
+from building import *
 
 # Fire spread function
 def spread_fire(server):
@@ -80,10 +81,12 @@ def inputThread(server):
         if user_input == "exit":
             break
         elif user_input.startswith("fire "):
-            room = user_input.split()[1]
-            if room in server.pollState().nodes:
-                server.updateRoom(room)
-                print(f"🔥 Fire added to {room}")
+            _, floor, row, col = user_input.split()
+            floor, row, col = int(floor), int(row), int(col)
+            print(server.findIndex(floor, row, col))
+            if Room(floor, row, col) in list(server.pollState().nodes):
+                server.updateRoom(floor, row, col)
+                print(f"🔥 Fire added to R{floor}_{row}_{col}")
             else:
                 print("Invalid room.")
 
@@ -98,7 +101,8 @@ if __name__ == '__main__':
     server = Server(config)
 
     # Assign 3D positions
-    pos = {node: (int(node.split("_")[2]), int(node.split("_")[1]), int(node.split("_")[0][1:])) for node in server.pollState().nodes}
+    nodes: list[Room] = list(server.pollState().nodes)
+    pos = {node: (node.col, node.row, node.floor) for node in nodes}
 
     # Start input thread (this can run in a separate thread)
     t1 = threading.Thread(target=inputThread, args=(server,))

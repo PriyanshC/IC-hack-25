@@ -13,7 +13,7 @@ class Model:
         graph = nx.DiGraph()
         
         # Add nodes to graph
-        [[graph.add_node(room, label=room.name(), color=room.color()) for room in floor] for floor in self.building.rooms]
+        [[graph.add_node(room) for room in floor] for floor in self.building.rooms]
         [graph.add_edge(door.prev, door.next) for door in self.building.doors]
 
         return graph

@@ -141,14 +141,16 @@ ax = fig.add_subplot(111, projection="3d")
 
 
 fire_spread_time = 1
+time_since_fire = 0
 
 
 # Assign 3D positions
 pos = {node: (int(node.split("_")[2]), int(node.split("_")[1]), int(node.split("_")[0][1:])) for node in G.nodes}
 def update(frame):
     global fire_spread_time
+    global time_since_fire
     ax.clear()
-
+    time_since_fire += 1
     if fire_spread_time == 9:
         spread_fire()
         fire_spread_time = 0    
@@ -161,6 +163,10 @@ def update(frame):
     person.update_position(speed=0.2)  # Adjust speed as needed
     person.move(safe_paths)
     
+    # each node has a time, which tells us when the fire will reach
+    # no fire means node warning = sys.time.max
+    
+    # G.nodes[n]["warning"] = 20 // eta time of arrival of fireat that node
 
     node_colors = [
         "red" if G.nodes[n]["fire"] else
@@ -184,7 +190,7 @@ def update(frame):
                 ax.plot(x_vals, y_vals, z_vals, "blue", linewidth=2)
 
     # Draw the person smoothly moving
-    ax.scatter(*person.current_position, color="black", s=250, edgecolor="white")
+    ax.scatter(*person.current_position, color="pink", s=250, edgecolor="white")
 
     ax.set_xlabel("Column")
     ax.set_ylabel("Row")

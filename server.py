@@ -18,6 +18,7 @@ class Server:
         self.FLOORS, self.ROWS, self.COLS = config
         self.config = config
         self.state = DiGraph()
+
         # Generate nodes
         self.nodes = [f"R{floor}_{row}_{col}" for floor in range(self.FLOORS) for row in range(self.ROWS) for col in range(self.COLS)]
         self.stairwell_row, self.stairwell_col = self.ROWS // 2, self.COLS // 2
@@ -28,6 +29,8 @@ class Server:
         self.constructGraph()
 
 
+
+    # Set up graph connections
     def constructGraph(self):
         # Add nodes to graph
         for node in self.nodes:
@@ -49,23 +52,22 @@ class Server:
             self.state.add_edge(lower, upper, weight=1)
             self.state.add_edge(upper, lower, weight=1)
 
-
+    # Return the current state of the building (the graph)
     def pollState(self) -> DiGraph:
         return self.state
 
-
+    # Update a room to be set on fire and recalculate routes
     def updateRoom(self, nodeName: int):
-        # recalc route (call dijkstra)
         node = self.state.nodes[nodeName]
+
         # self.fire_nodes.add(node.name)
         # node.setFire()
 
         self.calculateExitRoutes()
 
-    def calculateExitRoutes(self):
     # Function to find safest paths
+    def calculateExitRoutes(self):
         safe_paths = {}
-        blocked_nodes = set()
         for node in self.state.nodes:
             if node in self.exit_nodes:
                 safe_paths[node] = None
@@ -81,5 +83,8 @@ class Server:
                     continue
             safe_paths[node] = min(valid_paths, key=len) if valid_paths else None
             if not safe_paths[node]:
-                blocked_nodes.add(node)
-        return safe_paths, blocked_nodes
+                # node.setBlocked()
+                pass
+            else:
+                # node.safePath(safe_paths[node])
+                pass

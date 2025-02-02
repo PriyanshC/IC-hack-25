@@ -6,39 +6,6 @@ from mpl_toolkits.mplot3d import Axes3D
 from matplotlib.animation import FuncAnimation
 
 
-
-# # Create graph
-# G = nx.DiGraph()
-
-# # Generate nodes
-# nodes = [f"R{floor}_{row}_{col}" for floor in range(FLOORS) for row in range(ROWS) for col in range(COLS)]
-# stairwell_row, stairwell_col = ROWS // 2, COLS // 2
-# stairwell_nodes = {f"R{floor}_{stairwell_row}_{stairwell_col}" for floor in range(FLOORS)}
-# exit_nodes = {f"R0_{random.randint(0, ROWS-1)}_{random.randint(0, COLS-1)}"}  # Random exit
-
-
-# # Add nodes to graph
-# for node in nodes:
-#     G.add_node(node, exit=node in exit_nodes, fire=node in fire_nodes, stairwell=node in stairwell_nodes)
-
-# # Connect rooms within the same floor
-# for floor in range(FLOORS):
-#     for row in range(ROWS):
-#         for col in range(COLS):
-#             current = f"R{floor}_{row}_{col}"
-#             if col < COLS - 1: G.add_edge(current, f"R{floor}_{row}_{col + 1}", weight=1)
-#             if col > 0: G.add_edge(current, f"R{floor}_{row}_{col - 1}", weight=1)
-#             if row < ROWS - 1: G.add_edge(current, f"R{floor}_{row + 1}_{col}", weight=1)
-#             if row > 0: G.add_edge(current, f"R{floor}_{row - 1}_{col}", weight=1)
-
-# # Connect floors via stairwell
-# for floor in range(FLOORS - 1):
-#     lower, upper = f"R{floor}_{stairwell_row}_{stairwell_col}", f"R{floor + 1}_{stairwell_row}_{stairwell_col}"
-#     G.add_edge(lower, upper, weight=1)
-#     G.add_edge(upper, lower, weight=1)
-
-
-
 # # Fire spread function
 # def spread_fire():
 #     new_fire_nodes = set()
@@ -137,7 +104,6 @@ def main():
     server = Server(config)
 
     startFire(server)
-
 
 
 if __name__ == '__main__':

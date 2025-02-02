@@ -59,11 +59,13 @@ class Building:
 
                 for s in indices[: stairsPerFloor[f - 1]]:
                     self.doors.append(Door(floor[s], self.rooms[f - 1][s]))
+                    self.doors.append(Door(floor[f-1][s], self.rooms[f][s]))
 
 
             for prev_room in range(len(self.rooms[f]) - 1):
                 for next_room in range(len(self.rooms[f])):
                     self.doors.append(Door(self.rooms[f][prev_room], self.rooms[f][next_room]))
+                    self.doors.append(Door(self.rooms[f][next_room], self.rooms[f][prev_room]))
 
         
         if exitsOnlyOnGround:
@@ -72,14 +74,18 @@ class Building:
 
             [self.rooms[0][i].setState(RoomState.Exit) for i in indices[: exits]]
 
+        fireFloor = 0
+        fireRoom = 0
+        while (True):
+            # Choose room to start fire
+            fireFloor = random.randrange(0, len(self.rooms))
+            fireRoom = random.randrange(0, len(self.rooms[fireFloor]))
+            
+            if (self.rooms[fireFloor][fireRoom].state != RoomState.Exit): break
 
-        # Choose room to start fire
-        f = random.randrange(0, len(self.rooms))
-        r = random.randrange(0, len(self.rooms[f]))
-
-        self.rooms[f][r].setState(RoomState.Fire)
+        self.rooms[fireFloor][fireRoom].setState(RoomState.Fire)
 
 
-    def balanced(floors: int, roomsPerFloor: int, exits: int, exitsOnlyOnGround: bool = True):
-        return Building([roomsPerFloor for _ in range(floors)], exits, exitsOnlyOnGround)        
+    def balanced(floors: int, roomsPerFloor: int, stairsPerFloor: int, exits: int, exitsOnlyOnGround: bool = True):
+        return Building([roomsPerFloor for _ in range(floors)], [stairsPerFloor for _ in range(floors)], exits, exitsOnlyOnGround)        
         

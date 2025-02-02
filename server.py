@@ -30,7 +30,7 @@ class Server:
         # Add nodes to graph
         # print(len(self.nodes))
         for node in self.nodes:
-            self.state.add_node(node.name, exit=node in self.exit_nodes, fire=False, stairwell=node in self.stairwell_nodes)
+            self.state.add_node(node.name, exit=node in self.exit_nodes, fire=False, stairwell=node in self.stairwell_nodes, warning=float('inf'), distance_to_safety=float('inf'))
         
         # print("State", self.state)
 
@@ -55,42 +55,55 @@ class Server:
         return self.state
 
     # Update a room to be set on fire and recalculate routes
-    def updateRoom(self, floor, row, col):
+    def updateRoom(self, floor, row, col, type):
 
         node = self.findIndex(floor, row, col)
-        print("LENGTH BEFORE IS " + str(len(self.fire_nodes)))
         self.fire_nodes.add(node)
-        print("LENGTH afyer IS " + str(len(self.fire_nodes)))
+        if type == RoomState.Fire:
+            self.state.nodes[node.name]["fire"] = True
+            node.setState(RoomState.Fire)
+        if type == RoomState.Hurry:
+            node.setState(RoomState.Hurry)
+        if type == RoomState.Trap:
+            node.setState(RoomState.Trap)
 
-        self.state.nodes[node.name]["fire"] = True
-        node.setState(RoomState.Fire)
 
         self.calculateExitRoutes()
+        
+        
+        # Function to find safest paths
+
+        
 
     # Function to find safest paths
     def calculateExitRoutes(self):
         safe_paths = {}
         blocked_paths = set()
+        
         for node in self.nodes:
             if node in self.exit_nodes:
-                safe_paths[node] = None
+                safe_paths[node.name] = None
                 continue
+            
             valid_paths = []
             for exit_node in self.exit_nodes:
                 try:
+                    # Generate all simple paths from the current node to the exit node
                     paths = list(nx.all_simple_paths(self.state, source=node.name, target=exit_node.name))
+                    
+                    # Filter paths to exclude those that go through fire nodes
                     for path in paths:
-                        if all(n not in self.fire_nodes for n in path):
+                        if all(not self.state.nodes[n]["fire"] for n in path):
                             valid_paths.append(path)
                 except nx.NetworkXNoPath:
                     continue
-            safe_paths[node] = min(valid_paths, key=len) if valid_paths else None
-            if not safe_paths[node]:
-                blocked_paths.add(node)
-                # node.setBlocked()
-                pass
+            
+            # Choose the shortest valid path if any exist
+            if valid_paths:
+                safe_paths[node.name] = min(valid_paths, key=len)
             else:
-                # node.safePath(safe_paths[node])
-                pass
+                safe_paths[node.name] = None
+                blocked_paths.add(node)
+                node.setState(RoomState.Trap)
 
         return safe_paths, blocked_paths

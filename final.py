@@ -3,6 +3,17 @@ import matplotlib.pyplot as plt
 import random
 from mpl_toolkits.mplot3d import Axes3D
 from matplotlib.animation import FuncAnimation
+import matplotlib.patches as patches
+from matplotlib.offsetbox import OffsetImage, AnnotationBbox
+import numpy as np
+
+# Load images for visual indicators (replace with your own images if needed)
+fire_exit_sign = plt.imread("fire_exit.png")  # Replace with path to fire exit sign image
+red_cross = plt.imread("red_cross.png")      # Replace with path to red cross image
+triangle = plt.imread("trapped.png")        # Replace with path to triangle image
+running_man = plt.imread("rush.png")  # Replace with path to running man image
+not_fastest_route = plt.imread("faster_route.png")  # Replace with path to the image
+
 
 # Building configuration
 FLOORS = 3
@@ -16,8 +27,8 @@ G = nx.Graph()  # Use an undirected graph for bidirectional edges
 nodes = [f"R{floor}_{row}_{col}" for floor in range(FLOORS) for row in range(ROWS) for col in range(COLS)]
 stairwell_row, stairwell_col = ROWS // 2, COLS // 2
 stairwell_nodes = {f"R{floor}_{stairwell_row}_{stairwell_col}" for floor in range(FLOORS)}
-exit_nodes = {f"R0_{random.randint(0, ROWS-1)}_{random.randint(0, COLS-1)}"}  # Random exit
-initial_fire_nodes = set(random.sample(nodes, 1))  # Start with 1 fire node
+exit_nodes = {f"R0_0_0"}  # Random exit
+initial_fire_nodes = {"R2_2_0"}  # Start with 1 fire node
 fire_nodes = set(initial_fire_nodes)
 
 # Add nodes to graph
@@ -172,34 +183,123 @@ pos = {node: (int(node.split("_")[2]), int(node.split("_")[1]), int(node.split("
 person = Person("R2_0_0", pos)
 
 # 3D Visualization
-fig = plt.figure(figsize=(10, 7))
-ax = fig.add_subplot(111, projection="3d")
+# fig = plt.figure(figsize=(10, 7))
+# ax = fig.add_subplot(111, projection="3d")
 
 fire_spread_time = 1
 time_since_fire = 0
 tick_speed = 500  # Milliseconds per tick
 
+
+
+def update_edge_states(G, safe_paths, blocked_nodes):
+    # Reset all edge states to "not fastest route"
+    for u, v in G.edges:
+        G.edges[u, v]["state"] = "not fastest route"
+        G.edges[v, u]["state"] = "not fastest route"
+
+
+    # Handle "trapped" state for blocked nodes
+    for node in blocked_nodes:
+        for neighbor in G.neighbors(node):
+            G.edges[node, neighbor]["state"] = "trapped"
+            G.edges[neighbor, node]["state"] = "trapped"
+
+    # Mark edges leading into fire as "fire ahead"
+    for node in G.nodes:
+        if G.nodes[node]["fire"]:
+            for neighbor in G.neighbors(node):
+                G.edges[neighbor, node]["state"] = "fire ahead"  # Edge leading into fire
+
+    # Mark edges along the safest path as "safe route"
+    for node, path in safe_paths.items():
+        if path and len(path) > 1:
+            for i in range(len(path) - 1):
+                u, v = path[i], path[i + 1]
+                if G.edges[u, v]["state"] != "fire ahead":  # Only mark as safe if not leading into fire
+                    G.edges[u, v]["state"] = "safe route"
+
+    # Handle "go faster" state for yellow nodes
+    for node in G.nodes:
+        if G.nodes[node]["warning"] < G.nodes[node]["distance_to_safety"]:
+            path = safe_paths[node]
+            if path and len(path) > 1:
+                for i in range(len(path) - 1):
+                    u, v = path[i], path[i + 1]
+                    if G.nodes[v]["warning"] < G.nodes[v]["distance_to_safety"]:
+                        G.edges[u, v]["state"] = "go faster"
+
+
+            
+            
+def create_mini_ui(ax, edge_states):
+    ax.clear()
+    ax.set_xticks([])
+    ax.set_yticks([])
+    ax.set_xlim(0, 10)
+    ax.set_ylim(0, 10)
+    ax.set_aspect("equal")
+
+    # Create a grid layout for the mini UI
+    n_edges = len(edge_states)
+    n_cols = int(np.ceil(np.sqrt(n_edges)))
+    n_rows = int(np.ceil(n_edges / n_cols))
+
+    # Define state-to-digit mapping
+    state_to_digit = {
+        "safe route": 0,
+        "not fastest route": 1,
+        "go faster": 2,
+        "trapped": 3,
+        "fire ahead": 4,
+    }
+
+    # Define state-to-color mapping
+    state_to_color = {
+        "safe route": "green",
+        "not fastest route": "orange",
+        "go faster": "yellow",
+        "trapped": "black",
+        "fire ahead": "red",
+    }
+
+    for idx, (edge, state) in enumerate(edge_states.items()):
+        row = idx // n_cols
+        col = idx % n_cols
+        x = col * (10 / n_cols) + (5 / n_cols)
+        y = 10 - (row * (10 / n_rows) + (5 / n_rows))
+
+        # Get the digit and color for the current state
+        digit = state_to_digit.get(state, 0)  # Default to 0 if state is not found
+        color = state_to_color.get(state, "green")  # Default to green if state is not found
+
+        # Display the digit in the grid cell
+        ax.text(
+            x, y, str(digit), color=color, fontsize=20, ha="center", va="center", fontweight="bold"
+        )
+# Modify the update function to include the mini UI
 def update(frame):
     global fire_spread_time, time_since_fire, tick_speed, paused
-    
+
     if paused:
         return  # Skip updating when paused
-    
-    ax.clear()
+
+    ax_3d.clear()
     time_since_fire += 1
     if fire_spread_time >= 2 * (1000 / tick_speed):  # Fire spreads every 2 seconds
         spread_fire()
         calculate_fire_eta(G, fire_nodes, tick_speed)  # Update fire ETA for all nodes
         calculate_distance_to_safety(G, exit_nodes)  # Update distance to safety for all nodes
-        fire_spread_time = 0    
-    fire_spread_time += 1 
+        fire_spread_time = 0
+    fire_spread_time += 1
 
     safe_paths, blocked_nodes = find_safest_paths(G, exit_nodes)
-    
+    update_edge_states(G, safe_paths, blocked_nodes)  # Update edge states for both directions
+
     # Move the person gradually
     person.update_position()
     person.move(safe_paths)
-    
+
     # Node colors based on fire, exit, warning, and blocked status
     node_colors = [
         "red" if G.nodes[n]["fire"] else
@@ -211,35 +311,60 @@ def update(frame):
 
     for node, (x, y, z) in pos.items():
         color = node_colors[list(G.nodes).index(node)]
-        ax.scatter(x, y, z, color=color, s=200)
+        ax_3d.scatter(x, y, z, color=color, s=200)
 
-        # Get node attributes
-        # distance_to_safety = G.nodes[node]["distance_to_safety"]
-        # fire_eta = G.nodes[node]["warning"]
-        
-        # # Display distance to safety above the node
-        # ax.text(x, y, z + 0.3, f"{distance_to_safety:.1f}", color="blue", fontsize=10, ha="center")
+    # Draw edges with their states for both directions
+    for u, v in G.edges:
+        x_vals, y_vals, z_vals = zip(*[pos[u], pos[v]])
+        edge_state_forward = G.edges[u, v]["state"]
+        edge_state_backward = G.edges[v, u]["state"]
 
-        # # Display warning time (fire ETA) below the node
-        # ax.text(x, y, z - 0.3, f"{fire_eta:.1f}", color="red", fontsize=10, ha="center")
+        # Draw forward direction (u → v)
+        if edge_state_forward == "safe route":
+            ax_3d.plot(x_vals, y_vals, z_vals, "blue", linewidth=2)
+        elif edge_state_forward == "fire ahead":
+            ax_3d.plot(x_vals, y_vals, z_vals, "red", linewidth=1, linestyle="dashed")
+        elif edge_state_forward == "go faster":
+            ax_3d.plot(x_vals, y_vals, z_vals, "yellow", linewidth=3)
+        elif edge_state_forward == "trapped":
+            ax_3d.plot(x_vals, y_vals, z_vals, "black", linewidth=1, linestyle="dotted")
+        elif edge_state_forward == "not fastest route":
+            ax_3d.plot(x_vals, y_vals, z_vals, "orange", linewidth=1, linestyle="dotted")
 
-    for edge in G.edges:
-        x_vals, y_vals, z_vals = zip(*[pos[edge[0]], pos[edge[1]]])
-        ax.plot(x_vals, y_vals, z_vals, "gray")
-    
-    for node, path in safe_paths.items():
-        if path and len(path) > 1:
-            for i in range(len(path) - 1):
-                x_vals, y_vals, z_vals = zip(*[pos[path[i]], pos[path[i+1]]])
-                ax.plot(x_vals, y_vals, z_vals, "blue", linewidth=2)
+        # Draw backward direction (v → u)
+        if edge_state_backward == "safe route":
+            ax_3d.plot(x_vals, y_vals, z_vals, "blue", linewidth=2)
+        elif edge_state_backward == "fire ahead":
+            ax_3d.plot(x_vals, y_vals, z_vals, "red", linewidth=1, linestyle="dashed")
+        elif edge_state_backward == "go faster":
+            ax_3d.plot(x_vals, y_vals, z_vals, "yellow", linewidth=3)
+        elif edge_state_backward == "trapped":
+            ax_3d.plot(x_vals, y_vals, z_vals, "black", linewidth=1, linestyle="dotted")
+        elif edge_state_backward == "not fastest route":
+            ax_3d.plot(x_vals, y_vals, z_vals, "orange", linewidth=1, linestyle="dotted")
 
     # Draw the person smoothly moving
-    ax.scatter(*person.current_position, color="pink", s=250, edgecolor="white")
+    ax_3d.scatter(*person.current_position, color="pink", s=250, edgecolor="white")
 
-    ax.set_xlabel("Column")
-    ax.set_ylabel("Row")
-    ax.set_zlabel("Floor")
-    ax.set_title(f"Time Step: {frame+1}")
+    ax_3d.set_xlabel("Column")
+    ax_3d.set_ylabel("Row")
+    ax_3d.set_zlabel("Floor")
+    ax_3d.set_title(f"Time Step: {frame+1}")
+
+    # Update the mini UI
+    edge_states = {(u, v): G.edges[u, v]["state"] for u, v in G.edges}
+    create_mini_ui(ax_ui, edge_states)
+    
+    
+    
+# Create the figure and subplots
+fig = plt.figure(figsize=(15, 7))
+gs = fig.add_gridspec(1, 2, width_ratios=[2, 1])
+ax_3d = fig.add_subplot(gs[0], projection="3d")
+ax_ui = fig.add_subplot(gs[1])
+
+# Rest of the code remains the same
+
 
     
 paused = False  # Global pause state

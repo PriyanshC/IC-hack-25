@@ -28,7 +28,7 @@ nodes = [f"R{floor}_{row}_{col}" for floor in range(FLOORS) for row in range(ROW
 stairwell_row, stairwell_col = ROWS // 2, COLS // 2
 stairwell_nodes = {f"R{floor}_{stairwell_row}_{stairwell_col}" for floor in range(FLOORS)}
 exit_nodes = {f"R0_0_0"}  # Random exit
-initial_fire_nodes = {"R2_2_1"}  # Start with 1 fire node
+initial_fire_nodes = {"R2_2_0"}  # Start with 1 fire node
 fire_nodes = set(initial_fire_nodes)
 
 # Add nodes to graph
@@ -192,21 +192,32 @@ tick_speed = 500  # Milliseconds per tick
 
 
 
-# Function to update edge states
 def update_edge_states(G, safe_paths, blocked_nodes):
+    # Reset all edge states to "not fastest route"
     for u, v in G.edges:
-        # Default state for both directions
-        G.edges[u, v]["state"] = "fire ahead"
-        G.edges[v, u]["state"] = "fire ahead"
+        G.edges[u, v]["state"] = "not fastest route"
+        G.edges[v, u]["state"] = "not fastest route"
 
+
+    # Handle "trapped" state for blocked nodes
+    for node in blocked_nodes:
+        for neighbor in G.neighbors(node):
+            G.edges[node, neighbor]["state"] = "trapped"
+            G.edges[neighbor, node]["state"] = "trapped"
+
+    # Mark edges leading into fire as "fire ahead"
+    for node in G.nodes:
+        if G.nodes[node]["fire"]:
+            for neighbor in G.neighbors(node):
+                G.edges[neighbor, node]["state"] = "fire ahead"  # Edge leading into fire
+
+    # Mark edges along the safest path as "safe route"
     for node, path in safe_paths.items():
         if path and len(path) > 1:
             for i in range(len(path) - 1):
                 u, v = path[i], path[i + 1]
-                # Mark the edge as part of the safest path
-                G.edges[u, v]["state"] = "safe route"
-                # Mark the reverse edge as "fire ahead"
-                G.edges[v, u]["state"] = "fire ahead"
+                if G.edges[u, v]["state"] != "fire ahead":  # Only mark as safe if not leading into fire
+                    G.edges[u, v]["state"] = "safe route"
 
     # Handle "go faster" state for yellow nodes
     for node in G.nodes:
@@ -218,20 +229,9 @@ def update_edge_states(G, safe_paths, blocked_nodes):
                     if G.nodes[v]["warning"] < G.nodes[v]["distance_to_safety"]:
                         G.edges[u, v]["state"] = "go faster"
 
-    # Handle "trapped" state for blocked nodes
-    for node in blocked_nodes:
-        for neighbor in G.neighbors(node):
-            G.edges[node, neighbor]["state"] = "trapped"
-            G.edges[neighbor, node]["state"] = "trapped"
 
-    # Handle "not fastest route" state
-    for u, v in G.edges:
-        if G.edges[u, v]["state"] == "fire ahead":
-            # Check if the edge leads to a safe node but is not part of the fastest path
-            if not G.nodes[v]["fire"] and not G.nodes[v]["exit"] and v not in blocked_nodes:
-                G.edges[u, v]["state"] = "not fastest route"
-
-# Function to create the mini UI
+            
+            
 def create_mini_ui(ax, edge_states):
     ax.clear()
     ax.set_xticks([])
@@ -240,12 +240,28 @@ def create_mini_ui(ax, edge_states):
     ax.set_ylim(0, 10)
     ax.set_aspect("equal")
 
-    edge_states = dict(random.sample(list(edge_states.items()), 16))
-
     # Create a grid layout for the mini UI
     n_edges = len(edge_states)
     n_cols = int(np.ceil(np.sqrt(n_edges)))
     n_rows = int(np.ceil(n_edges / n_cols))
+
+    # Define state-to-digit mapping
+    state_to_digit = {
+        "safe route": 0,
+        "not fastest route": 1,
+        "go faster": 2,
+        "trapped": 3,
+        "fire ahead": 4,
+    }
+
+    # Define state-to-color mapping
+    state_to_color = {
+        "safe route": "green",
+        "not fastest route": "orange",
+        "go faster": "yellow",
+        "trapped": "black",
+        "fire ahead": "red",
+    }
 
     for idx, (edge, state) in enumerate(edge_states.items()):
         row = idx // n_cols
@@ -253,26 +269,14 @@ def create_mini_ui(ax, edge_states):
         x = col * (10 / n_cols) + (5 / n_cols)
         y = 10 - (row * (10 / n_rows) + (5 / n_rows))
 
-        if state == "safe route":
-            img = fire_exit_sign
-        elif state == "fire ahead":
-            img = red_cross
-        elif state == "trapped":
-            img = triangle
-        elif state == "go faster":
-            img = running_man
-        elif state == "not fastest route":
-            img = not_fastest_route
-        else:
-            img = fire_exit_sign  # Default
+        # Get the digit and color for the current state
+        digit = state_to_digit.get(state, 0)  # Default to 0 if state is not found
+        color = state_to_color.get(state, "green")  # Default to green if state is not found
 
-        # Display the image in the grid cell
-        zoom_factor = min(10 / n_cols, 10 / n_rows) * 0.08  # Adjust the multiplier if needed
-
-        imagebox = OffsetImage(img, zoom=zoom_factor)
-        ab = AnnotationBbox(imagebox, (x, y), frameon=False)
-        ax.add_artist(ab)
-
+        # Display the digit in the grid cell
+        ax.text(
+            x, y, str(digit), color=color, fontsize=20, ha="center", va="center", fontweight="bold"
+        )
 # Modify the update function to include the mini UI
 def update(frame):
     global fire_spread_time, time_since_fire, tick_speed, paused

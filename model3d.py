@@ -155,10 +155,9 @@ def updateGraph(frame, server, pos, tick_speed):
             calculate_fire_eta(G, server.fire_nodes, tick_speed, server)  # Update fire ETA for all nodes
             calculate_distance_to_safety(G, server.exit_nodes)  # Update distance to safety for all nodes
             fire_spread_time = 0    
+            safe_paths, blocked_nodes = server.calculateExitRoutes()
         fire_spread_time += 1 
         
-        safe_paths, blocked_nodes = server.calculateExitRoutes()
-
         person.update_position(speed=0.2)  # Adjust speed as needed
         person.move(safe_paths)
     else:

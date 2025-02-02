@@ -111,8 +111,8 @@ def calculate_fire_eta(G, fire_nodes, tick_speed):
         lengths = nx.single_source_dijkstra_path_length(G, fire_node, weight='weight')
         for node, length in lengths.items():
             # Scale the warning time by tick speed and add randomness
-            fire_spread_rate = 1  # Random fire spread rate
-            # fire_spread_rate = random.uniform(0.5, 1.5)  # Random fire spread rate
+            # fire_spread_rate = 1  # Random fire spread rate
+            fire_spread_rate = random.uniform(0.7, 1.5)  # Random fire spread rate
             
             warning_time = (length * (1000 / tick_speed)) / fire_spread_rate
             if warning_time < G.nodes[node]["warning"]:

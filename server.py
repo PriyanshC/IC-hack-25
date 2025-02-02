@@ -58,8 +58,10 @@ class Server:
     def updateRoom(self, floor, row, col):
 
         node = self.findIndex(floor, row, col)
-
+        print("LENGTH BEFORE IS " + str(len(self.fire_nodes)))
         self.fire_nodes.add(node)
+        print("LENGTH afyer IS " + str(len(self.fire_nodes)))
+
         self.state.nodes[node.name]["fire"] = True
         node.setState(RoomState.Fire)
 

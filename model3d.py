@@ -11,6 +11,9 @@ from building import *
 # Fire spread function
 def spread_fire(server):
     new_fire_nodes = set()
+    print()
+    print(server.fire_nodes)
+    print()
     for node in server.fire_nodes:
         floor, row, col = node.floor, node.row, node.col
         neighbors = []
@@ -27,18 +30,27 @@ def spread_fire(server):
             neighbors.append(server.findIndex(floor+1, row, col))
         if node in server.stairwell_nodes and floor > 0:
             neighbors.append(server.findIndex(floor-1, row, col))
+
+        print("NEIGHBOURS")
+        print(neighbors)
+        print("NEIGHBOURS")
         
         # Filter neighbors that are not on fire yet
-        uninfected_neighbors = [n for n in neighbors if n not in server.fire_nodes and n in server.getNodes()]
+        uninfected_neighbors = [n for n in neighbors if n not in server.fire_nodes]
         
+        print(uninfected_neighbors)
         # If there are any uninfected neighbors, randomly pick one to infect
         if uninfected_neighbors:
             new_fire_node = random.choice(uninfected_neighbors)
             if new_fire_node not in server.exit_nodes:
                 new_fire_nodes.add(new_fire_node)
+
+        print("NEW FIRE NODE JUST DROPPED")
+        print(new_fire_nodes)
+        print("LOLOLOLOLOLOL")
+
     
     # Update fire nodes
-    server.fire_nodes.update(new_fire_nodes)
     for node in new_fire_nodes:
         server.updateRoom(node.floor, node.row, node.col)
 
@@ -48,6 +60,7 @@ fig = plt.figure(figsize=(10, 7))
 ax = fig.add_subplot(111, projection="3d")
 
 def updateGraph(frame, server, pos):
+    print("HALLO")
     ax.clear()
     G = server.pollState()
     nodes = server.getNodes()   
@@ -80,7 +93,7 @@ def updateGraph(frame, server, pos):
     ax.set_title(f"Time Step: {frame+1}")
 
 def displayThread(server, pos):
-    ani = FuncAnimation(fig, updateGraph, frames=1, fargs=(server, pos), interval=3000)
+    ani = FuncAnimation(fig, updateGraph, fargs=(server, pos), interval=3000)
     plt.show()
 
 def inputThread(server):

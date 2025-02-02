@@ -5,40 +5,73 @@ from mpl_toolkits.mplot3d import Axes3D
 from matplotlib.animation import FuncAnimation
 
 # Building configuration
-FLOORS = 3
-ROWS = 3
-COLS = 4
+FLOORS = 5
 
 # Create graph
 G = nx.Graph()  # Use an undirected graph for bidirectional edges
 
-# Generate nodes
-nodes = [f"R{floor}_{row}_{col}" for floor in range(FLOORS) for row in range(ROWS) for col in range(COLS)]
-stairwell_row, stairwell_col = ROWS // 2, COLS // 2
-stairwell_nodes = {f"R{floor}_{stairwell_row}_{stairwell_col}" for floor in range(FLOORS)}
-exit_nodes = {f"R0_{random.randint(0, ROWS-1)}_{random.randint(0, COLS-1)}"}  # Random exit
+nodes = [
+    "R0_0_0",
+    "R0_0_1",
+    "R0_1_0"
+]
+
+[nodes.extend([
+    f"R{floor}_0_0",
+    f"R{floor}_0_1",
+    f"R{floor}_0_2",
+    f"R{floor}_0_3",
+    f"R{floor}_0_4",
+
+    F"R{floor}_1_2",
+
+    f"R{floor}_2_0",
+    f"R{floor}_2_1",
+    f"R{floor}_2_2",
+    f"R{floor}_2_3",
+    f"R{floor}_2_4",
+]) for floor in range(1, FLOORS)]
+
 initial_fire_nodes = set(random.sample(nodes, 1))  # Start with 1 fire node
 fire_nodes = set(initial_fire_nodes)
+exit_nodes = ["R0_0_0", "R0_0_1"]
+
+stairwell_nodes = ["R0_1_0", "R_0_1"]
+[stairwell_nodes.extend([f"R{floor}_0_3", f"R{floor}_2_3"]) for floor in range(1, FLOORS - 1)]
 
 # Add nodes to graph
 for node in nodes:
     G.add_node(node, exit=node in exit_nodes, fire=node in fire_nodes, stairwell=node in stairwell_nodes, warning=float('inf'), distance_to_safety=float('inf'))
 
+
+G.add_edge(f"R0_0_0", f"R0_0_1", weight=4)
+G.add_edge(f"R0_0_0", f"R0_1_0", weight=4)
+G.add_edge(f"R0_1_0", f"R1_0_0", weight=4)
+G.add_edge(f"R0_0_1", f"R1_0_4", weight=4)
+
+
 # Connect rooms within the same floor (bidirectional)
-for floor in range(FLOORS):
-    for row in range(ROWS):
-        for col in range(COLS):
-            current = f"R{floor}_{row}_{col}"
-            if col < COLS - 1: G.add_edge(current, f"R{floor}_{row}_{col + 1}", weight=4)
-            if col > 0: G.add_edge(current, f"R{floor}_{row}_{col - 1}", weight=4)
-            if row < ROWS - 1: G.add_edge(current, f"R{floor}_{row + 1}_{col}", weight=4)
-            if row > 0: G.add_edge(current, f"R{floor}_{row - 1}_{col}", weight=4)
+for floor in range(1, FLOORS):
+    G.add_edge(f"R{floor}_0_0", f"R{floor}_0_1", weight=4)
+    G.add_edge(f"R{floor}_0_1", f"R{floor}_0_2", weight=4)
+    G.add_edge(f"R{floor}_0_2", f"R{floor}_0_3", weight=4)
+    G.add_edge(f"R{floor}_0_3", f"R{floor}_0_4", weight=4)
+    
+    G.add_edge(f"R{floor}_0_2", f"R{floor}_1_2", weight=4)
+    G.add_edge(f"R{floor}_1_2", f"R{floor}_2_2", weight=4)
+    
+    G.add_edge(f"R{floor}_2_0", f"R{floor}_2_1", weight=4)
+    G.add_edge(f"R{floor}_2_1", f"R{floor}_2_2", weight=4)
+    G.add_edge(f"R{floor}_2_2", f"R{floor}_2_3", weight=4)
+    G.add_edge(f"R{floor}_2_3", f"R{floor}_2_4", weight=4)
+
 
 # Connect floors via stairwell (bidirectional)
-for floor in range(FLOORS - 1):
-    lower, upper = f"R{floor}_{stairwell_row}_{stairwell_col}", f"R{floor + 1}_{stairwell_row}_{stairwell_col}"
-    G.add_edge(lower, upper, weight=4)
+for floor in range(1, FLOORS - 1):
+    G.add_edge(f"R{floor}_0_3", f"R{floor + 1}_0_3", weight=4)
+    G.add_edge(f"R{floor}_2_3", f"R{floor + 1}_2_3", weight=4)
 
+    
 # Function to find safest paths
 def find_safest_paths(G, exit_nodes):
     safe_paths = {}

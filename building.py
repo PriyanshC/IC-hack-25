@@ -34,7 +34,7 @@ class Room:
         return self.row == other.row and self.col == other.col and self.floor == other.floor
 
     def __hash__(self):
-        return hash((self.row, self.col, self.state, self.floor))
+        return hash(repr(self))
     
     def __repr__(self):
         return f"Room({self.floor}, {self.row}, {self.col})"

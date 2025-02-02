@@ -10,19 +10,14 @@ import threading
 # IP of ESP32-S2 Mini
 url = "http://172.30.175.227/data"
 
-# Define temperature threshold for fire detection
-FIRE_THRESHOLD = 50.0  # Adjust based on real sensor data
-
 # Building configuration
 FLOORS = 3
 ROWS = 3
 COLS = 4
 FIRE_THRESHOLD = 28.5
-fire_detected = False  # Initially, no fire detected
 
 # Create graph
 G = nx.DiGraph()
-
 
 def get_temperature():
     """Fetch sensor data from ESP32 and return temperature as float."""
@@ -32,10 +27,10 @@ def get_temperature():
             if response.status_code == 200:
                 temperature = response.text.split(" ")[1].split("\n")[0]
                 temperature = float(temperature[:-3])  # Remove unwanted characters
-                print(f"Temperature: {temperature}°C")
-                
+                print(temperature)
                 if temperature > FIRE_THRESHOLD:
                     print("FIRE!!!!!")
+                    fire_nodes.add(nodes[30])
             else:
                 print(f"Error: Unable to fetch data (Status code: {response.status_code})")
                 return None
@@ -50,7 +45,7 @@ nodes = [f"R{floor}_{row}_{col}" for floor in range(FLOORS) for row in range(ROW
 stairwell_row, stairwell_col = ROWS // 2, COLS // 2
 stairwell_nodes = {f"R{floor}_{stairwell_row}_{stairwell_col}" for floor in range(FLOORS)}
 exit_nodes = {f"R0_{random.randint(0, ROWS-1)}_{random.randint(0, COLS-1)}"}  # Random exit
-initial_fire_nodes = set(random.sample(nodes, 1))  # Start with 1 fire nodes
+initial_fire_nodes = set()  # Start with 1 fire nodes
 fire_nodes = set(initial_fire_nodes)
 
 # Add nodes to graph

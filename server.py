@@ -20,13 +20,13 @@ class Server:
         self.constructGraph()
 
     def findIndex(self, floor, row, col):
-        return self.nodes[floor * self.FLOORS + row * self.ROWS + col * self.COLS]
+        return self.nodes[floor * (self.COLS * self.ROWS) + row * self.COLS + col]
 
     # Set up graph connections
     def constructGraph(self):
         # Add nodes to graph
         for node in self.nodes:
-            self.state.add_node(node, exit=node in self.exit_nodes, stairwell=node in self.stairwell_nodes)
+            self.state.add_node(node, exit=node in self.exit_nodes, fire=node in self.fire_nodes, stairwell=node in self.stairwell_nodes)
         
         # Connect rooms within the same floor
         for floor in range(self.FLOORS):

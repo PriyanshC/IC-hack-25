@@ -12,15 +12,15 @@ from building import *
 def spread_fire(server):
     new_fire_nodes = set()
     for node in server.fire_nodes:
-        floor, row, col = map(int, node[1:].split("_"))
+        floor, row, col = node.floor, node.row, node.col
         neighbors = [
-            f"R{floor}_{row+1}_{col}", f"R{floor}_{row-1}_{col}",
-            f"R{floor}_{row}_{col+1}", f"R{floor}_{row}_{col-1}"
+            server.findIndex(floor, row+1, col), server.findIndex(floor, row-1, col),
+            server.findIndex(floor, row, col+1), server.findIndex(floor, row, col-1)
         ]
         if node in server.stairwell_nodes and floor < server.FLOORS - 1:
-            neighbors.append(f"R{floor+1}_{row}_{col}")
+            neighbors.append(server.findIndex(floor+1, row, col))
         if node in server.stairwell_nodes and floor > 0:
-            neighbors.append(f"R{floor-1}_{row}_{col}")
+            neighbors.append(server.findIndex(floor-1, row, col))
         
         # Filter neighbors that are not on fire yet
         uninfected_neighbors = [n for n in neighbors if n not in server.fire_nodes and n in server.pollState().nodes]
